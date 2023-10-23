@@ -47,11 +47,14 @@ class WorkerAuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:workers',
             'password' => 'required|string|min:6',
-            'phone' => 'required|string|min:6',
-            'photo' => 'required|string|min:6',
-            'location' => 'required|string|min:6',
+            'phone' => 'required|string|max:17',
+            'photo' => 'required|image|mimes:jpg,png,jpeg',
+            'location' => 'required|string',
         ]);
 
+        $request->merge([
+            'photo' => $request->file('photo')->store('/workers'),
+        ]);
         $worker = Worker::create([
             'name' => $request->name,
             'email' => $request->email,
