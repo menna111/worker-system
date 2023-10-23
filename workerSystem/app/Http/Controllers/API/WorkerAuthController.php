@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AuthRequest;
+use App\Http\Requests\Client\WorkerRegisterRequest;
 use App\Models\Worker;
 use App\Traits\ImageUploadTrait;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,15 +19,14 @@ class WorkerAuthController extends Controller
         $this->middleware('auth:worker', ['except' => ['login', 'register']]);
     }
 
-    public function login(Request $request)
+    public function login(AuthRequest $request)
     {
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
         $credentials = $request->only('email', 'password');
-        $token = Auth::attempt($credentials);
-
+        $token = Auth::guard('worker')->attempt($credentials);
         if (! $token) {
             return response()->json([
                 'message' => 'Unauthorized',
@@ -44,17 +44,8 @@ class WorkerAuthController extends Controller
         ]);
     }
 
-    public function register(Request $request)
+    public function register(WorkerRegisterRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:workers',
-            'password' => 'required|string|min:6',
-            'phone' => 'required|string|max:17',
-            'photo' => 'required|image|mimes:jpg,png,jpeg',
-            'location' => 'required|string',
-        ]);
-
         $photo = $this->uploadImage($request->photo, 'workers', 50);
         $worker = Worker::create([
             'name' => $request->name,

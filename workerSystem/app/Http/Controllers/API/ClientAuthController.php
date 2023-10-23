@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AuthRequest;
+use App\Http\Requests\Client\WorkerRegisterRequest;
 use App\Models\Client;
 use App\Traits\ImageUploadTrait;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,14 +19,10 @@ class ClientAuthController extends Controller
         $this->middleware('auth:client', ['except' => ['login', 'register']]);
     }
 
-    public function login(Request $request)
+    public function login(AuthRequest $request)
     {
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
         $credentials = $request->only('email', 'password');
-        $token = Auth::attempt($credentials);
+        $token = Auth::guard('client')->attempt($credentials);
 
         if (! $token) {
             return response()->json([
@@ -44,15 +41,8 @@ class ClientAuthController extends Controller
         ]);
     }
 
-    public function register(Request $request)
+    public function register(WorkerRegisterRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:clients',
-            'password' => 'required|string|min:6',
-            'photo' => 'required|image|mimes:jpg,png,jpeg',
-        ]);
-
         $photo = $this->uploadImage($request->photo, 'clients', 50);
         $client = Client::create([
             'name' => $request->name,
