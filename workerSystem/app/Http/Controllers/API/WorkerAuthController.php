@@ -5,61 +5,33 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AuthRequest;
 use App\Http\Requests\Client\WorkerRegisterRequest;
-use App\Models\Worker;
+use App\Services\WorkerAuthService;
 use App\Traits\ImageUploadTrait;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class WorkerAuthController extends Controller
 {
     use ImageUploadTrait;
 
-    public function __construct()
+    public function __construct(private WorkerAuthService $workerAuthService)
     {
         $this->middleware('auth:worker', ['except' => ['login', 'register']]);
     }
 
     public function login(AuthRequest $request)
     {
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
-        $credentials = $request->only('email', 'password');
-        $token = Auth::guard('worker')->attempt($credentials);
-        if (! $token) {
-            return response()->json([
-                'message' => 'Unauthorized',
-            ], 401);
-        }
+        $data = $request->validated();
+        $user = $this->workerAuthService->login($data);
 
-        $user = Auth::user();
-
-        return response()->json([
-            'user' => $user,
-            'authorization' => [
-                'token' => $token,
-                'type' => 'bearer',
-            ],
-        ]);
+        return $user;
     }
 
     public function register(WorkerRegisterRequest $request)
     {
-        $photo = $this->uploadImage($request->photo, 'workers', 50);
-        $worker = Worker::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'photo' => $photo,
-            'phone' => $request->phone,
-            'location' => $request->location,
-        ]);
+        $data = $request->validated();
+        $worker = $this->workerAuthService->register($data);
 
-        return response()->json([
-            'message' => 'Worker created successfully',
-            'user' => $worker,
-        ]);
+        return $worker;
     }
 
     public function logout()
